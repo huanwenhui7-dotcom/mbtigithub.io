@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI 16型人格趣味测评中心</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React 19 & Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Quicksand"', '"Noto Sans SC"', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Quicksand', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #f5f3ff 0%, #e0f2fe 50%, #fef3c7 100%);
+            min-height: 100vh;
+        }
+        .clay-card {
+            background: #ffffff;
+            border-radius: 2.2rem;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.08), 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.95);
+        }
+        .clay-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.25);
+        }
+        .clay-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(124, 58, 237, 0.35);
+        }
+        .clay-btn:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body class="text-slate-700 antialiased selection:bg-purple-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 100道完整题库 (E/I, S/N, T/F, J/P 四维度平衡)
+        const fullQuestionBank = [
+            { id: 1, text: "在一个大型社交聚会中，你通常倾向于：", options: [
+                { text: "主动结识新朋友，和大家聊得火热", type: "E", score: 2 },
+                { text: "跟熟络的朋友在一起，偶尔和旁边的人搭话", type: "E", score: 1 },
+                { text: "倾向于和几个熟悉的人深入交流", type: "I", score: 1 },
+                { text: "尽量找安静的角落，或早早离场独自呆着", type: "I", score: 2 }
+            ]},
+            { id: 2, text: "周末你更愿意如何度过？", options: [
+                { text: "参加派对、聚会或户外热闹的活动", type: "E", score: 2 },
+                { text: "和三两知己逛街、看电影或聚餐", type: "E", score: 1 },
+                { text: "在家看书、追剧、打游戏，享受独处时光", type: "I", score: 2 },
+                { text: "做自己的一人手艺活、拼图或深度思考", type: "I", score: 1 }
+            ]},
+            { id: 3, text: "工作或学习了一整周后，你的“充电”方式是：", options: [
+                { text: "呼朋唤友一起去KTV或吃大餐放松", type: "E", score: 2 },
+                { text: "和同事/同学一起聚餐聊天", type: "E", score: 1 },
+                { text: "一个人安安静静地泡个澡或听音乐", type: "I", score: 2 },
+                { text: "关掉手机，谁也不理，独自大睡一场", type: "I", score: 1 }
+            ]},
+            { id: 4, text: "面对陌生人的主动搭讪，你的第一反应通常是：", options: [
+                { text: "热情回应，顺势和对方愉快地聊起来", type: "E", score: 2 },
+                { text: "礼貌微笑并简短应答", type: "E", score: 1 },
+                { text: "内心有点小尴尬，客套两句便结束话题", type: "I", score: 1 },
+                { text: "恨不得立刻隐身，觉得应付陌生人很耗精力", type: "I", score: 2 }
+            ]},
+            { id: 5, text: "在公开会议或课堂上发言时，你感觉：", options: [
+                { text: "精力充沛，享受成为焦点并表达观点", type: "E", score: 2 },
+                { text: "比较坦然，能够正常把话说清楚", type: "E", score: 1 },
+                { text: "心跳加速，尽量避免被点名发言", type: "I", score: 1 },
+                { text: "极度抗拒，宁愿写长篇大论也不愿当众开口", type: "I", score: 2 }
+            ]},
+            { id: 6, text: "当你的想法或计划被打断，需要临时加入集体讨论时：", options: [
+                { text: "觉得很有趣，当场碰撞出新的灵感火花", type: "E", score: 2 },
+                { text: "能够迅速调整状态并参与进去", type: "E", score: 1 },
+                { text: "需要一点时间适应，内心希望自己能先理清思路", type: "I", score: 1 },
+                { text: "感到被打扰和被打乱，需要独自静静", type: "I", score: 2 }
+            ]},
+            { id: 7, text: "你身边的朋友怎么评价你的社交属性？", options: [
+                { text: "社交达人、气氛组组长、老来熟", type: "E", score: 2 },
+                { text: "随和开朗，聚会时也挺健谈", type: "E", score: 1 },
+                { text: "慢热型，熟了之后是个话痨", type: "I", score: 1 },
+                { text: "高冷、内敛、需要好久才能走入内心", type: "I", score: 2 }
+            ]},
+            { id: 8, text: "在电话沟通与文字聊天（微信等）之间，你更偏爱：", options: [
+                { text: "直接语音或打电话，高效痛快", type: "E", score: 2 },
+                { text: "视情况而定，紧急时打电话", type: "E", score: 1 },
+                { text: "能发文字就绝不打电话，文字更安全", type: "I", score: 1 },
+                { text: "看到电话铃响就焦虑，只喜欢发表情包和文字", type: "I", score: 2 }
+            ]},
+            { id: 9, text: "在阅读小说或观看科幻电影时，你更容易被什么吸引？", options: [
+                { text: "具体的画面、特效、逼真的场景细节", type: "S", score: 2 },
+                { text: "故事情节的发展和人物命运", type: "S", score: 1 },
+                { text: "故事背后的深层寓意或宏大世界观设定", type: "N", score: 1 },
+                { text: "导演隐喻的哲学思考、未来科技的反思", type: "N", score: 2 }
+            ]},
+            { id: 10, text: "当你学习一项新技能或组装新家具时，你倾向于：", options: [
+                { text: "严格按照说明书步骤一步步操作", type: "S", score: 2 },
+                { text: "先看大致图示，边做边摸索", type: "S", score: 1 },
+                { text: "凭直觉上手，觉得说明书太啰嗦", type: "N", score: 1 },
+                { text: "完全自由发挥，甚至想改进它的结构", type: "N", score: 2 }
+            ]},
+            { id: 11, text: "对于未来的规划，你通常的习惯是：", options: [
+                { text: "立足当下，做好手头的每一件现实小事", type: "S", score: 2 },
+                { text: "制定近期几个月切实可行的具体目标", type: "S", score: 1 },
+                { text: "脑海里常常充满未来的各种奇思妙想和可能", type: "N", score: 1 },
+                { text: "构想5年甚至10年后的宏大愿景，享受概念设计", type: "N", score: 2 }
+            ]},
+            { id: 12, text: "你更倾向于信任哪种类型的信息？", options: [
+                { text: "看得见摸得着的客观事实、数据和过往经验", type: "S", score: 2 },
+                { text: "身边人真实发生过的事情", type: "S", score: 1 },
+                { text: "内在的第六感、直觉以及对趋势的敏锐捕捉", type: "N", score: 1 },
+                { text: "抽象的理论、灵感以及尚未被验证的创新可能", type: "N", score: 2 }
+            ]},
+            { id: 13, text: "当别人向你描述一件事情时，你更关注：", options: [
+                { text: "具体的细节、时间、地点和人物原话", type: "S", score: 2 },
+                { text: "事情的前因后果和直接结果", type: "S", score: 1 },
+                { text: "对方的弦外之音和背后的潜台词", type: "N", score: 1 },
+                { text: "这件事象征着什么模式，以及未来的走向", type: "N", score: 2 }
+            ]},
+            { id: 14, text: "你如何看待“常规”与“传统”？", options: [
+                { text: "历经时间考验的常规和传统往往最省心管用", type: "S", score: 2 },
+                { text: "大部分情况下遵守常规比较稳妥", type: "S", score: 1 },
+                { text: "传统有时会束缚手脚，喜欢尝试新花样", type: "N", score: 1 },
+                { text: "常规就是用来打破的，讨厌因循守旧", type: "N", score: 2 }
+            ]},
+            { id: 15, text: "当朋友向你倾诉遭遇不公时，你的第一反应通常是：", options: [
+                { text: "帮他理性分析利弊，找出解决问题的最优逻辑", type: "T", score: 2 },
+                { text: "先听听事实，再给客观建议", type: "T", score: 1 },
+                { text: "先给予强烈的感同身受和情绪安抚，狠狠吐槽", type: "F", score: 1 },
+                { text: "无条件站在朋友这边，先抱抱他，对错放一边", type: "F", score: 2 }
+            ]},
+            { id: 16, text: "在职场或团队决策中，你认为什么最重要？", options: [
+                { text: "客观公正的规则、效率和结果导向", type: "T", score: 2 },
+                { text: "按章办事，兼顾效率", type: "T", score: 1 },
+                { text: "团队成员的感受、氛围和士气", type: "F", score: 1 },
+                { text: "照顾到每一个人的情感，避免任何人受委屈", type: "F", score: 2 }
+            ]},
+            { id: 17, text: "面对严厉的批评和客观的错误指出，你的感受是：", options: [
+                { text: "对事不对人，只要说得对就虚心接受并改正", type: "T", score: 2 },
+                { text: "理性听取，虽然心里有点小波澜", type: "T", score: 1 },
+                { text: "容易感到沮丧，觉得对方语气太冲伤了感情", type: "F", score: 1 },
+                { text: "十分走心甚至难过很久，觉得对方否定了自己的人格", type: "F", score: 2 }
+            ]},
+            { id: 18, text: "做重大决定（如换工作、买房）时，你更依赖：", options: [
+                { text: "理性计算成本收益、数据对比和可行性分析", type: "T", score: 2 },
+                { text: "综合现实条件和利弊清单", type: "T", score: 1 },
+                { text: "自己的内心价值观和这件事是否让自己开心", type: "F", score: 1 },
+                { text: "凭内心的热情和对所爱之人的影响来决定", type: "F", score: 2 }
+            ]},
+            { id: 19, text: "看电影或电视剧时，你更容易因为什么而落泪？", options: [
+                { text: "极少因剧情哭泣，更关注逻辑硬不硬核", type: "T", score: 2 },
+                { text: "宏大叙事中的悲壮牺牲", type: "T", score: 1 },
+                { text: "角色之间细腻感人的亲情、友情或爱情羁绊", type: "F", score: 1 },
+                { text: "极其容易共情，主角受委屈或动物受伤就泪崩", type: "F", score: 2 }
+            ]},
+            { id: 20, text: "当不得不拒绝别人的请求时，你会：", options: [
+                { text: "直接干脆地说明理由和客观情况，拒绝内耗", type: "T", score: 2 },
+                { text: "委婉表达，讲清不行的原因", type: "T", score: 1 },
+                { text: "内心纠结万分，担心对方会生气的歉意满满", type: "F", score: 1 },
+                { text: "宁愿自己吃亏委屈，也难以开口说“不”", type: "F", score: 2 }
+            ]},
+            { id: 21, text: "外出旅游前，你的行前准备习惯是：", options: [
+                { text: "提前做好精确到小时的详细攻略和备用方案", type: "J", score: 2 },
+                { text: "订好酒店和机票，列一个大致的景点清单", type: "J", score: 1 },
+                { text: "只有大概目的地，到了当地随性发挥", type: "P", score: 1 },
+                { text: "买张机票说走就走，主打一个随心所欲惊喜盲盒", type: "P", score: 2 }
+            ]},
+            { id: 22, text: "面对生活中的日常任务（如交作业、做报告、大扫除）：", options: [
+                { text: "习惯提前几天甚至一周就规划并提前搞定", type: "J", score: 2 },
+                { text: "按时按计划推进，不喜欢拖到最后", type: "J", score: 1 },
+                { text: "常常拖到截止日期前夕才开始爆发赶工", type: "P", score: 1 },
+                { text: "死线是第一生产力，不到最后一刻绝不开始", type: "P", score: 2 }
+            ]},
+            { id: 23, text: "你的卧室或办公桌通常的状态是：", options: [
+                { text: "井井有条，每件物品都有固定归宿，定期整理", type: "J", score: 2 },
+                { text: "比较整洁，找东西很方便", type: "J", score: 1 },
+                { text: "表面看起来有点乱，但我自己知道东西在哪", type: "P", score: 1 },
+                { text: "“乱中有序”，堆满了各种随手放下的杂物", type: "P", score: 2 }
+            ]},
+            { id: 24, text: "如果原本约好的行程突然被取消或临时更改：", options: [
+                { text: "会感到计划被打乱的烦躁，需要重新安排", type: "J", score: 2 },
+                { text: "稍微适应一下，调整接下来的安排", type: "J", score: 1 },
+                { text: "无所谓，刚好省下来的时间可以自由支配", type: "P", score: 1 },
+                { text: "甚至还有点小窃喜，最喜欢这种不期而遇的变故", type: "P", score: 2 }
+            ]},
+            { id: 25, text: "在处理生活中的各项事务时，你更倾向于：", options: [
+                { text: "凡事有计划、有大纲、有条不紊地推进", type: "J", score: 2 },
+                { text: "定个大框架，具体步骤灵活变通", type: "J", score: 1 },
+                { text: "走一步算一步，随机应变能力极强", type: "P", score: 1 },
+                { text: "极其讨厌被条条框框束缚，喜欢绝对自由", type: "P", score: 2 }
+            ]}
+        ];
+
+        function getRandomTestQuestions() {
+            const e_i = fullQuestionBank.filter(q => q.options[0].type === 'E' || q.options[0].type === 'I');
+            const s_n = fullQuestionBank.filter(q => q.options[0].type === 'S' || q.options[0].type === 'N');
+            const t_f = fullQuestionBank.filter(q => q.options[0].type === 'T' || q.options[0].type === 'F');
+            const j_p = fullQuestionBank.filter(q => q.options[0].type === 'J' || q.options[0].type === 'P');
+
+            function shuffle(array) {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            const selected = [
+                ...shuffle(e_i).slice(0, 8),
+                ...shuffle(s_n).slice(0, 7),
+                ...shuffle(t_f).slice(0, 8),
+                ...shuffle(j_p).slice(0, 7)
+            ];
+            return shuffle(selected);
+        }
+
+        const mbtiData = {
+            INTJ: { name: "建筑师", group: "Analysts", groupName: "分析家", slogan: "“想象力丰富且战略性强的思想家，把一切都看作棋盘。”", traits: ["独立自主", "果断坚定", "求知若渴", "过于完美主义"], careers: ["软件架构师", "战略顾问", "投资分析师", "科学家"], love: "在亲密关系中深情且忠诚，看重精神共鸣和智力匹配，追求共同成长的深度伴侣。", match: "ENFP, ENTP" },
+            INTP: { name: "逻辑学家", group: "Analysts", groupName: "分析家", slogan: "“具有创造力的发明家，对知识有着无可遏制的渴望。”", traits: ["富有创意", "客观理性", "博学多才", "容易分心"], careers: ["程序员", "数据科学研究员", "哲学家", "经济学家"], love: "喜欢与伴侣探讨深奥的话题，温柔但极其需要充足的个人空间和独立思考时间。", match: "ENTJ, ESTJ" },
+            ENTJ: { name: "指挥官", group: "Analysts", groupName: "分析家", slogan: "“大胆、富有想象力且意志强大的领导者，总能创造解决方法。”", traits: ["高效果断", "天生领袖", "自信强大", "有时显专断"], careers: ["企业高管", "创业者", "律师", "项目总监"], love: "将感情经营也视作需要共同成长的宏伟项目，充满保护欲、责任感与主导性。", match: "INTP, ISTP" },
+            ENTP: { name: "辩论家", group: "Analysts", groupName: "分析家", slogan: "“聪明好奇的思想家，绝不会放弃任何一个智力上的挑战。”", traits: ["思维敏捷", "幽默风趣", "善于创新", "缺乏耐心"], careers: ["创意总监", "公关专家", "产品经理", "创业者"], love: "在恋爱中充满情趣和新鲜感，喜欢风趣幽默、能跟上自己跳跃思维的神仙伴侣。", match: "INFJ, INTJ" },
+            INFJ: { name: "提倡者", group: "Diplomats", groupName: "外交家", slogan: "“安静而神秘，同时又是鼓舞人心且不知疲倦的理想主义者。”", traits: ["洞察力强", "富有同情心", "坚定执着", "内心敏感"], careers: ["心理咨询师", "作家", "人力资源总监", "社会活动家"], love: "追求灵魂深处的完美契合，对待伴侣极度温柔体贴，全心全意付出全部真心。", match: "ENFP, ENTP" },
+            INFP: { name: "调停者", group: "Diplomats", groupName: "外交家", slogan: "“诗意、善良而富有同情心的理想主义者，坚持内在价值观。”", traits: ["温柔善良", "充满理想", "善解人意", "容易内耗"], careers: ["心理医生", "自由撰稿人", "插画师", "非营利组织专员"], love: "浪漫至极，将伴侣视作生命中的唯一挚爱，渴望纯洁而深沉的精神羁绊。", match: "ENFJ, ENTJ" },
+            ENFJ: { name: "主人公", group: "Diplomats", groupName: "外交家", slogan: "“具有磁场般吸引力的领导者，能够轻而易举迷住他们的听众。”", traits: ["极具感召力", "热心可靠", "擅长沟通", "过度操心"], careers: ["企业培训师", "外交官", "公关经理", "教师"], love: "无微不至地照顾伴侣的情绪，是温暖体贴的灵魂伴侣和最坚实的精神后盾。", match: "INFP, ISFP" },
+            ENFP: { name: "竞选者", group: "Diplomats", groupName: "外交家", slogan: "“热情、有创造力又爱玩的社交高手，总能找到理由微笑。”", traits: ["热情洋溢", "极富创造力", "乐观开朗", "三分钟热度"], careers: ["市场策划", "节目主持人", "旅行博主", "演员"], love: "恋爱充满惊喜与罗曼蒂克，对世界充满好奇，渴望和伴侣一起探索浪漫美好。", match: "INTJ, INFJ" },
+            ISTJ: { name: "物流师", group: "Sentinels", groupName: "守护者", slogan: "“实际且注重事实的可靠之人，其严谨性与责任感不容置疑。”", traits: ["严谨负责", "踏实稳重", "遵守纪律", "略显固执"], careers: ["注册会计师", "审计师", "行政总监", "高级法官"], love: "用实际行动代替甜言蜜语，极其忠诚稳定，是长久过日子的不二人选。", match: "ESFP, ESTP" },
+            ISFJ: { name: "守卫者", group: "Sentinels", groupName: "守护者", slogan: "“非常专心致志且温暖的守护者，时刻准备着保护他们爱的人。”", traits: ["细心体贴", "无私奉献", "记忆力强", "不懂拒绝"], careers: ["医护人员", "幼儿教师", "社会工作者", "行政专员"], love: "温柔体贴，默默付出，把家庭和伴侣的幸福放在绝对的第一位。", match: "ESTP, ESFP" },
+            ESTJ: { name: "总经理", group: "Sentinels", groupName: "守护者", slogan: "“出色的管理者，在管理事情或组织团队方面无出其右。”", traits: ["组织力强", "直言不讳", "责任心重", "控制欲强"], careers: ["高级运营总监", "银行行长", "政府官员", "项目经理"], love: "稳定可靠，有强烈的家庭责任感，喜欢生活井井有条、目标明确。", match: "ISFP, ISTP" },
+            ESFJ: { name: "执政官", group: "Sentinels", groupName: "守护者", slogan: "“极有同情心、爱交际且受欢迎的人，总是热心提供帮助。”", traits: ["热情友好", "善于照顾人", "重视传统", "在意评价"], careers: ["活动策划人", "公关经理", "客服主管", "人力资源"], love: "浪漫、重视节日与纪念日，极度需要伴侣的情感肯定、赞美与陪伴。", match: "ISTP, ISFP" },
+            ISTP: { name: "鉴赏家", group: "Explorers", groupName: "探险家", slogan: "“大胆而实际的实验家，擅长使用各种形式的工具与技术。”", traits: ["动手能力强", "冷静应变", "崇尚自由", "难以预测"], careers: ["机械工程师", "飞行员", "特技演员", "硬件极客"], love: "相处轻松不粘人，用实际行动解决问题，崇尚给彼此足够的个人自由度。", match: "ESTJ, ESFJ" },
+            ISFP: { name: "探险家", group: "Explorers", groupName: "探险家", slogan: "“灵活而迷人的艺术家，时刻准备着探索和体验新鲜事物。”", traits: ["审美极佳", "温柔随和", "热爱自由", "回避冲突"], careers: ["室内设计师", "时装设计师", "摄影师", "音乐家"], love: "极具浪漫情调与艺术气息，用细腻的行动和礼物表达浓浓爱意。", match: "ENFJ, ESFJ" },
+            ESTP: { name: "企业家", group: "Explorers", groupName: "探险家", slogan: "“聪明、精力充沛且非常善于感知的人，享受生活在边缘。”", traits: ["机智果断", "行动力强", "极具魅力", "缺乏长性"], careers: ["企业创始人", "销售总监", "运动员", "战地记者"], love: "恋爱轰轰烈烈，追求刺激与新鲜感，幽默风趣且极具人格吸引力。", match: "ISFJ, ISTJ" },
+            ESFP: { name: "表演者", group: "Explorers", groupName: "探险家", slogan: "“充满活力与热情的人，生活在他们周围永远不会感到无聊。”", traits: ["天生乐观", "极具感染力", "热爱狂欢", "逃避沉重"], careers: ["演员/艺人", "时尚买手", "活动主持人", "导游"], love: "把恋爱变成一场盛大的派对，给伴侣带来无尽的快乐与浪漫惊喜。", match: "ISTJ, ISFJ" }
+        };
+
+        // 高级 3D 几何低多边形卡通头像 SVG 组件
+        function LowPolyAvatar({ type }) {
+            const colors = {
+                Analysts: ["#c084fc", "#7e22ce", "#a855f7"],
+                Diplomats: ["#34d399", "#047857", "#10b981"],
+                Sentinels: ["#60a5fa", "#1d4ed8", "#3b82f6"],
+                Explorers: ["#fbbf24", "#b45309", "#f59e0b"]
+            };
+            const group = mbtiData[type]?.group || "Analysts";
+            const [c1, c2, c3] = colors[group];
+
+            return (
+                <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-xl transform hover:scale-105 transition duration-300">
+                    <defs>
+                        <linearGradient id={`grad-${type}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor={c1} />
+                            <stop offset="50%" stopColor={c2} />
+                            <stop offset="100%" stopColor={c3} />
+                        </linearGradient>
+                    </defs>
+                    <rect width="200" height="200" rx="45" fill={`url(#grad-${type})`} opacity="0.18" />
+                    <polygon points="100,20 145,50 160,105 100,140 40,105 55,50" fill={`url(#grad-${type})`} opacity="0.85" />
+                    <polygon points="100,140 160,105 180,165 100,190 20,165 40,105" fill={c2} opacity="0.7" />
+                    <polygon points="70,70 100,45 130,70 100,105" fill="#ffffff" opacity="0.35" />
+                    <polygon points="85,85 100,72 115,85 100,100" fill="#ffffff" opacity="0.55" />
+                    <circle cx="80" cy="85" r="9" fill="#1e293b" />
+                    <circle cx="120" cy="85" r="9" fill="#1e293b" />
+                    <polygon points="100,100 92,122 108,122" fill="#1e293b" opacity="0.9" />
+                    <path d="M 84 142 Q 100 158 116 142" stroke="#1e293b" strokeWidth="5" fill="none" strokeLinecap="round" />
+                    <text x="100" y="38" textAnchor="middle" fill="#ffffff" fontSize="17" fontWeight="900" letterSpacing="3">{type}</text>
+                </svg>
+            );
+        }
+
+        function App() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const isAdmin = urlParams.get('admin') === 'true';
+
+            const [logs, setLogs] = React.useState(() => {
+                const saved = localStorage.getItem('mbti_usage_logs');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            const tokenUsedKey = `mbti_used_${token}`;
+            const isTokenAlreadyUsed = token && localStorage.getItem(tokenUsedKey) === 'true';
+
+            const [view, setView] = React.useState(() => {
+                if (isAdmin) return 'home';
+                if (isTokenAlreadyUsed) return 'expired';
+                if (!token) return 'unauthorized';
+                return 'home';
+            });
+
+            const [questions, setQuestions] = React.useState([]);
+            const [currentIndex, setCurrentIndex] = React.useState(0);
+            const [answers, setAnswers] = React.useState({});
+            const [resultType, setResultType] = React.useState(null);
+            const [scores, setScores] = React.useState(null);
+            const [selectedModalType, setSelectedModalType] = React.useState(null);
+
+            const radarChartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+
+            if (!isAdmin && !token) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="clay-card max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">🔒</div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">需要访问授权</h2>
+                            <p className="text-slate-600 text-sm mb-6">当前页面需要通过管理员分发的专属测试链接才能进入。管理员可直接在网址后加上 <code className="bg-slate-100 px-1.5 py-0.5 rounded text-purple-600">?admin=true</code>。</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!isAdmin && isTokenAlreadyUsed && view !== 'result' && view !== 'expired') {
+                setView('expired');
+            }
+
+            const startQuiz = () => {
+                if (!isAdmin && localStorage.getItem(tokenUsedKey) === 'true') {
+                    setView('expired');
+                    return;
+                }
+                const generated = getRandomTestQuestions();
+                setQuestions(generated);
+                setCurrentIndex(0);
+                setAnswers({});
+                setView('quiz');
+            };
+
+            // 每做完一道题，点击选项后 0.2 秒自动跳转下一题
+            const handleSelectOption = (questionId, type, score) => {
+                const newAnswers = { ...answers, [questionId]: { type, score } };
+                setAnswers(newAnswers);
+
+                setTimeout(() => {
+                    if (currentIndex < questions.length - 1) {
+                        setCurrentIndex(currentIndex + 1);
+                    } else {
+                        calculateResult(newAnswers);
+                    }
+                }, 200);
+            };
+
+            const calculateResult = (finalAnswers) => {
+                let counts = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+                Object.values(finalAnswers).forEach(ans => {
+                    if (counts[ans.type] !== undefined) counts[ans.type] += ans.score;
+                });
+
+                const finalType = (counts.E >= counts.I ? 'E' : 'I') +
+                                  (counts.S >= counts.N ? 'S' : 'N') +
+                                  (counts.T >= counts.F ? 'T' : 'F') +
+                                  (counts.J >= counts.P ? 'J' : 'P');
+
+                setResultType(finalType);
+                setScores(counts);
+
+                if (!isAdmin && token) {
+                    localStorage.setItem(tokenUsedKey, 'true');
+                    const newLog = { token: token, result: finalType, time: new Date().toLocaleString() };
+                    const updatedLogs = [newLog, ...logs];
+                    setLogs(updatedLogs);
+                    localStorage.setItem('mbti_usage_logs', JSON.stringify(updatedLogs));
+                }
+
+                setView('result');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            React.useEffect(() => {
+                if (view === 'result' && scores && radarChartRef.current) {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const ctx = radarChartRef.current.getContext('2d');
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['外向 (E)', '直觉 (N)', '情感 (F)', '知觉 (P)', '内向 (I)', '感觉 (S)', '思考 (T)', '判断 (J)'],
+                            datasets: [{
+                                label: '八维偏好得分分布',
+                                data: [
+                                    scores.E || 2, scores.N || 2, scores.F || 2, scores.P || 2,
+                                    scores.I || 2, scores.S || 2, scores.T || 2, scores.J || 2
+                                ],
+                                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                                borderColor: '#9333ea',
+                                pointBackgroundColor: '#7e22ce',
+                                pointBorderColor: '#fff',
+                                pointRadius: 4,
+                                borderWidth: 2.5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                r: {
+                                    angleLines: { color: 'rgba(203, 213, 225, 0.5)' },
+                                    grid: { color: 'rgba(203, 213, 225, 0.5)' },
+                                    pointLabels: {
+                                        font: { size: 12, weight: 'bold', family: 'Quicksand' },
+                                        color: '#475569'
+                                    },
+                                    ticks: { display: false, max: 16 }
+                                }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            }, [view, scores]);
+
+            if (view === 'expired') {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="clay-card max-w-md w-full p-8 text-center">
+                            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">🔒</div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">该测试链接已失效</h2>
+                            <p className="text-slate-600 text-sm mb-6">此专属测试链接已经成功使用并生成过一次报告。每个链接仅限完整使用 1 次。</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col justify-between p-4 sm:p-6 lg:p-8">
+                    {/* 顶部导航 */}
+                    <header className="max-w-6xl mx-auto w-full flex justify-between items-center py-4 mb-6">
+                        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('home')}>
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg">M</div>
+                            <span className="text-xl sm:text-2xl font-extrabold tracking-wider bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent">MBTI PERSONALITIES</span>
+                        </div>
+                        <div className="flex space-x-2 sm:space-x-3 items-center">
+                            <button onClick={() => setView('home')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${view === 'home' ? 'bg-purple-600 text-white shadow-md' : 'bg-white/80 hover:bg-white text-slate-600'}`}>首页</button>
+                            <button onClick={() => setView('encyclopedia')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${view === 'encyclopedia' ? 'bg-purple-600 text-white shadow-md' : 'bg-white/80 hover:bg-white text-slate-600'}`}>16人格图鉴</button>
+                            {isAdmin && (
+                                <button onClick={() => setView('admin')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center space-x-1 ${view === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'bg-amber-100 hover:bg-amber-200 text-amber-800'}`}>
+                                    <span>👑 后台</span>
+                                    <span className="ml-1 px-1.5 py-0.5 bg-white/80 text-amber-900 rounded-full text-xs">{logs.length}</span>
+                                </button>
+                            )}
+                        </div>
+                    </header>
+
+                    {/* 主体内容区 */}
+                    <main className="max-w-6xl mx-auto w-full flex-grow">
+                        {/* 1. 精美主页：四大阵营 + 嵌入所有 16 种卡通形象 */}
+                        {view === 'home' && (
+                            <div className="space-y-12 animate-fade-in pb-12">
+                                <div className="clay-card p-8 sm:p-14 text-center relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-80 h-80 bg-purple-200/50 rounded-full blur-3xl -z-10"></div>
+                                    <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-200/50 rounded-full blur-3xl -z-10"></div>
+                                    
+                                    {isAdmin && (
+                                        <div className="mb-6 inline-block bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-2 rounded-xl font-bold shadow-sm">
+                                            👑 管理员已登录（可无限次测试，点击右上角【后台】可查看使用数据统计）
+                                        </div>
+                                    )}
+
+                                    <h1 className="text-3xl sm:text-5xl font-black text-slate-800 mb-4 tracking-tight">探索真实的自己，发现你的灵魂密码</h1>
+                                    <p className="text-slate-600 max-w-2xl mx-auto mb-10 text-base sm:text-lg font-medium leading-relaxed">
+                                        解锁立体 3D 几何低多边形卡通角色，获得多维雷达图可视化分析、职业适配走向与情感沟通黄金建议。
+                                    </p>
+
+                                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
+                                        <button onClick={startQuiz} className="clay-btn bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold px-10 py-4 rounded-2xl text-lg shadow-xl hover:opacity-95 flex items-center space-x-2">
+                                            <span>随机抽取 30 题开始测试 ✨</span>
+                                        </button>
+                                        <button onClick={() => setView('encyclopedia')} className="px-8 py-4 rounded-2xl text-base font-bold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 shadow-sm transition">
+                                            浏览 16 人格全景图鉴
+                                        </button>
+                                    </div>
+
+                                    {/* 四大性格阵营分组（内含 16 个人格头像预览，严格对齐参考图 2） */}
+                                    <div className="text-left mb-8">
+                                        <h2 className="text-2xl font-black text-slate-800 text-center mb-2">四大性格阵营分组</h2>
+                                        <p className="text-slate-500 text-sm text-center mb-8">16 种人格类型归属于四大核心阵营，点击任意头像即可快速预览</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {[
+                                            { key: "Analysts", name: "分析家 (Analysts)", badgeColor: "bg-purple-100 text-purple-700", border: "border-purple-200", types: ["INTJ", "INTP", "ENTJ", "ENTP"], desc: "理性、逻辑与战略见长，追求知识与卓越。" },
+                                            { key: "Diplomats", name: "外交家 (Diplomats)", badgeColor: "bg-emerald-100 text-emerald-700", border: "border-emerald-200", types: ["INFJ", "INFP", "ENFJ", "ENFP"], desc: "注重情感共情、同理心与理想主义。" },
+                                            { key: "Sentinels", name: "守护者 (Sentinels)", badgeColor: "bg-blue-100 text-blue-700", border: "border-blue-200", types: ["ISTJ", "ISFJ", "ESTJ", "ESFJ"], desc: "脚踏实地、讲求秩序与责任感。" },
+                                            { key: "Explorers", name: "探险家 (Explorers)", badgeColor: "bg-amber-100 text-amber-700", border: "border-amber-200", types: ["ISTP", "ISFP", "ESTP", "ESFP"], desc: "自发灵活、活在当下、充满行动力。" }
+                                        ].map(group => (
+                                            <div key={group.key} className="clay-card p-6 text-left flex flex-col justify-between bg-white/90">
+                                                <div>
+                                                    <div className="mb-3">
+                                                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${group.badgeColor}`}>{group.key}</span>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-slate-800 mb-1">{group.name}</h3>
+                                                    <p className="text-xs text-slate-500 mb-4 leading-relaxed">{group.desc}</p>
+                                                </div>
+
+                                                {/* 嵌入该阵营的 4 个低多边形卡通头像卡片 */}
+                                                <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100">
+                                                    {group.types.map(type => (
+                                                        <div key={type} onClick={() => setSelectedModalType(type)} className="cursor-pointer group text-center">
+                                                            <div className="w-12 h-12 mx-auto rounded-xl p-1 bg-slate-50 group-hover:scale-110 transition">
+                                                                <LowPolyAvatar type={type} />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-600 mt-1 block">{type}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. 管理员数据统计后台 */}
+                        {view === 'admin' && isAdmin && (
+                            <div className="space-y-6 animate-fade-in pb-12">
+                                <div className="clay-card p-6 sm:p-8 bg-gradient-to-r from-slate-900 to-purple-950 text-white">
+                                    <h2 className="text-2xl font-black mb-2">👑 管理员专属控制台</h2>
+                                    <p className="text-purple-200 text-sm">记录了所有外发链接的使用情况与测试结果统计。</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="clay-card p-6 bg-white">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">网站总使用次数 (成功出结果)</div>
+                                        <div className="text-4xl font-black text-purple-600">{logs.length} <span className="text-sm font-normal text-slate-500">次</span></div>
+                                    </div>
+                                    <div className="clay-card p-6 bg-white">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">管理员权限状态</div>
+                                        <div className="text-xl font-bold text-emerald-600 flex items-center mt-2">
+                                            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block mr-2 animate-pulse"></span>
+                                            无限畅玩中 (?admin=true)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="clay-card p-6 sm:p-8">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4">详细使用记录清单</h3>
+                                    {logs.length === 0 ? (
+                                        <div className="text-center py-12 text-slate-400 text-sm">暂无其他人使用记录。</div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b border-slate-100 text-xs text-slate-400 uppercase">
+                                                        <th className="py-3 px-4">序号</th>
+                                                        <th className="py-3 px-4">访客 Token</th>
+                                                        <th className="py-3 px-4">测试结果</th>
+                                                        <th className="py-3 px-4">完成时间</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="text-sm divide-y divide-slate-100">
+                                                    {logs.map((log, index) => (
+                                                        <tr key={index} className="hover:bg-slate-50">
+                                                            <td className="py-3 px-4 text-slate-400 font-mono">#{logs.length - index}</td>
+                                                            <td className="py-3 px-4 font-bold text-slate-700">{log.token}</td>
+                                                            <td className="py-3 px-4"><span className="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-700 font-bold text-xs">{log.result}</span></td>
+                                                            <td className="py-3 px-4 text-slate-500 text-xs">{log.time}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. 答题交互页 (每题点选后自动无缝跳转) */}
+                        {view === 'quiz' && questions.length > 0 && (
+                            <div className="clay-card p-6 sm:p-10 animate-fade-in max-w-2xl mx-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">题目 {currentIndex + 1} / {questions.length}</span>
+                                    <span className="text-xs font-medium text-slate-400">{Math.round(((currentIndex + 1) / questions.length) * 100)}% 完成</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2.5 rounded-full mb-8 overflow-hidden">
+                                    <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-2.5 rounded-full transition-all duration-300" style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}></div>
+                                </div>
+
+                                <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-8 leading-snug">{questions[currentIndex].text}</h2>
+
+                                <div className="space-y-4 mb-4">
+                                    {questions[currentIndex].options.map((opt, idx) => {
+                                        const isSelected = answers[questions[currentIndex].id]?.type === opt.type && answers[questions[currentIndex].id]?.score === opt.score;
+                                        return (
+                                            <div 
+                                                key={idx} 
+                                                onClick={() => handleSelectOption(questions[currentIndex].id, opt.type, opt.score)}
+                                                className={`p-4 sm:p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${isSelected ? 'border-purple-600 bg-purple-50/80 shadow-md scale-101' : 'border-slate-100 bg-white hover:border-purple-200 hover:bg-slate-50'}`}
+                                            >
+                                                <div className="flex items-center space-x-3">
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold ${isSelected ? 'border-purple-600 bg-purple-600 text-white' : 'border-slate-300 text-transparent'}`}>✓</div>
+                                                    <span className="text-sm sm:text-base font-medium text-slate-700">{opt.text}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="text-center text-xs text-purple-600 font-semibold mt-4">⚡ 极速模式：点击任意选项后将自动跳转下一题</div>
+                            </div>
+                        )}
+
+                        {/* 4. 结果报告页 (完美对齐参考图 1 样式与雷达图、四维比例条) */}
+                        {view === 'result' && resultType && scores && (
+                            <div className="space-y-6 animate-fade-in pb-12">
+                                <div className="clay-card p-8 sm:p-10 relative overflow-hidden flex flex-col sm:flex-row items-center justify-between">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100/60 rounded-full blur-3xl -z-10"></div>
+                                    <div className="text-left mb-6 sm:mb-0">
+                                        <div className="flex items-center space-x-2 mb-2">
+                                            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">{mbtiData[resultType].groupName} ({mbtiData[resultType].group})</span>
+                                            <span className="text-xs font-semibold text-slate-400">性格类型代号: {resultType}</span>
+                                        </div>
+                                        <h1 className="text-4xl sm:text-5xl font-black text-slate-800 mb-2">{resultType} - {mbtiData[resultType].name}</h1>
+                                        <p className="text-purple-700 text-base sm:text-lg font-bold mb-3">{mbtiData[resultType].slogan}</p>
+                                        <p className="text-slate-600 text-sm max-w-xl leading-relaxed">内代理想主义与坚定的内心价值观，拥有出色的共情能力与无限创意潜能，保持自信与独特光芒！</p>
+                                    </div>
+                                    <div className="w-36 h-36 flex-shrink-0">
+                                        <LowPolyAvatar type={resultType} />
+                                    </div>
+                                </div>
+
+                                {/* 左右双栏：左雷达图，右四维比例条（对齐参考图 1） */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="clay-card p-6 sm:p-8 flex flex-col justify-between">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                                            <span className="w-3 h-3 rounded-full bg-purple-600 mr-2"></span>
+                                            八维偏好雷达图分析
+                                        </h3>
+                                        <div className="relative w-full h-72 flex items-center justify-center">
+                                            <canvas ref={radarChartRef}></canvas>
+                                        </div>
+                                    </div>
+
+                                    <div className="clay-card p-6 sm:p-8 flex flex-col justify-between">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center">
+                                            <span className="w-3 h-3 rounded-full bg-amber-500 mr-2"></span>
+                                            四维偏好分值比例
+                                        </h3>
+                                        <div className="space-y-6">
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+                                                    <span>外向 E ({Math.round(((scores.E || 2)/((scores.E||2)+(scores.I||2)))*100)}%)</span>
+                                                    <span>内向 I ({Math.round(((scores.I || 2)/((scores.E||2)+(scores.I||2)))*100)}%)</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                                                    <div className="bg-purple-500 h-full transition-all duration-500" style={{ width: `${((scores.E || 2)/((scores.E||2)+(scores.I||2)))*100}%` }}></div>
+                                                    <div className="bg-purple-200 h-full transition-all duration-500" style={{ width: `${((scores.I || 2)/((scores.E||2)+(scores.I||2)))*100}%` }}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+                                                    <span>感觉 S ({Math.round(((scores.S || 2)/((scores.S||2)+(scores.N||2)))*100)}%)</span>
+                                                    <span>直觉 N ({Math.round(((scores.N || 2)/((scores.S||2)+(scores.N||2)))*100)}%)</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                                                    <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${((scores.S || 2)/((scores.S||2)+(scores.N||2)))*100}%` }}></div>
+                                                    <div className="bg-emerald-200 h-full transition-all duration-500" style={{ width: `${((scores.N || 2)/((scores.S||2)+(scores.N||2)))*100}%` }}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+                                                    <span>思考 T ({Math.round(((scores.T || 2)/((scores.T||2)+(scores.F||2)))*100)}%)</span>
+                                                    <span>情感 F ({Math.round(((scores.F || 2)/((scores.T||2)+(scores.F||2)))*100)}%)</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                                                    <div className="bg-blue-500 h-full transition-all duration-500" style={{ width: `${((scores.T || 2)/((scores.T||2)+(scores.F||2)))*100}%` }}></div>
+                                                    <div className="bg-blue-200 h-full transition-all duration-500" style={{ width: `${((scores.F || 2)/((scores.T||2)+(scores.F||2)))*100}%` }}></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+                                                    <span>判断 J ({Math.round(((scores.J || 2)/((scores.J||2)+(scores.P||2)))*100)}%)</span>
+                                                    <span>知觉 P ({Math.round(((scores.P || 2)/((scores.J||2)+(scores.P||2)))*100)}%)</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                                                    <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: `${((scores.J || 2)/((scores.J||2)+(scores.P||2)))*100}%` }}></div>
+                                                    <div className="bg-amber-200 h-full transition-all duration-500" style={{ width: `${((scores.P || 2)/((scores.J||2)+(scores.P||2)))*100}%` }}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="clay-card p-6">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-purple-600 mr-2"></span>核心特质与优势</h3>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {mbtiData[resultType].traits.map((t, idx) => (
+                                                <span key={idx} className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 text-xs font-semibold">{t}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="clay-card p-6">
+                                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600 mr-2"></span>适配职业方向</h3>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {mbtiData[resultType].careers.map((c, idx) => (
+                                                <span key={idx} className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold">{c}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="clay-card p-6 sm:p-8">
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center"><span className="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span>情感相处指南与灵魂默契搭档</h3>
+                                    <p className="text-slate-600 text-sm mb-4 leading-relaxed">{mbtiData[resultType].love}</p>
+                                    <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-between">
+                                        <span className="text-xs font-bold text-blue-900">契合度极佳的搭档参考：</span>
+                                        <span className="text-sm font-black text-blue-600">{mbtiData[resultType].match}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. 16人格全景图鉴页 */}
+                        {view === 'encyclopedia' && (
+                            <div className="space-y-8 animate-fade-in pb-12">
+                                <div className="text-center">
+                                    <h1 className="text-3xl font-extrabold text-slate-800 mb-2">16 型人格全景图鉴</h1>
+                                    <p className="text-slate-500 text-sm">点击任意低多边形卡通卡片查看详细深度解析</p>
+                                </div>
+
+                                {['Analysts', 'Diplomats', 'Sentinels', 'Explorers'].map(groupKey => {
+                                    const groupItems = Object.keys(mbtiData).filter(k => mbtiData[k].group === groupKey);
+                                    const groupTitle = groupItems.length > 0 ? mbtiData[groupItems[0]].groupName : '';
+                                    return (
+                                        <div key={groupKey} className="space-y-4">
+                                            <h3 className="text-xl font-bold text-slate-800 border-l-4 border-purple-600 pl-3">{groupTitle} ({groupKey})</h3>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                {groupItems.map(type => (
+                                                    <div key={type} onClick={() => setSelectedModalType(type)} className="clay-card p-5 text-center cursor-pointer hover:scale-105 transition bg-white">
+                                                        <div className="w-24 h-24 mx-auto mb-3"><LowPolyAvatar type={type} /></div>
+                                                        <h4 className="font-bold text-slate-800 text-lg">{type}</h4>
+                                                        <p className="text-xs text-purple-600 font-semibold mt-0.5">{mbtiData[type].name}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* 人格详情弹窗 */}
+                    {selectedModalType && (
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <div className="clay-card max-w-lg w-full p-6 sm:p-8 relative bg-white">
+                                <button onClick={() => setSelectedModalType(null)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 font-bold">✕</button>
+                                <div className="flex items-center space-x-4 mb-4">
+                                    <div className="w-20 h-20"><LowPolyAvatar type={selectedModalType} /></div>
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-slate-800">{selectedModalType} - {mbtiData[selectedModalType].name}</h3>
+                                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700">{mbtiData[selectedModalType].groupName}</span>
+                                    </div>
+                                </div>
+                                <p className="text-purple-700 text-sm font-bold mb-3 italic">{mbtiData[selectedModalType].slogan}</p>
+                                <div className="mb-4">
+                                    <div className="text-xs font-bold text-slate-700 mb-2">核心特质：</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {mbtiData[selectedModalType].traits.map((t, i) => (
+                                            <span key={i} className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold">{t}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl">灵魂默契搭档：{mbtiData[selectedModalType].match}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    <footer className="max-w-6xl mx-auto w-full text-center py-6 text-xs text-slate-400 border-t border-slate-200/60 mt-8">
+                        免责声明：本测评仅为趣味娱乐测试，不具备专业心理诊断效力。 | 管理员模式已就绪。
+                    </footer>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
